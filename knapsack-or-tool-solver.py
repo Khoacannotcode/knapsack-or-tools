@@ -2,6 +2,7 @@ from ortools.algorithms import pywrapknapsack_solver
 from pprint import pprint
 
 import os
+import time
 import pandas as pd
 from tabulate import tabulate
 
@@ -41,7 +42,9 @@ def get_info_tc(tc_path):
 
 def main():
     # create history for saving results
-    history = {}
+    value_history = {}
+    weight_history = {}
+    optimal_history = {}
     # Create the solver.
     solver = pywrapknapsack_solver.KnapsackSolver(
         pywrapknapsack_solver.KnapsackSolver.
@@ -51,47 +54,66 @@ def main():
     tc_path_tree = get_tc_path_tree(TC_PATH_ROOT)
 
     for tc_group in tc_path_tree.keys():
-        print("\n=========================")
-        print("tc_group : ", tc_group)
-        print("=========================")
-        history[tc_group] = {
+
+        base_history = {
             50: None,
             100 : None,
             200 : None,
             500 : None,
             1000 : None
         }
+        value_history[tc_group] = base_history.copy()
+        weight_history[tc_group] = base_history.copy()
+        optimal_history[tc_group] = base_history.copy()
+
         for problem_path in tc_path_tree[tc_group]:
             problem_size, capacities, values, weights = get_info_tc(problem_path)
-            print("problem_size : ", problem_size)
             can_solve = True
             if can_solve:
                 solver.Init(values, weights, capacities)
-                solver.set_time_limit( 180 )
+                TIME_LIMIT = 60
+                solver.set_time_limit( TIME_LIMIT )
+                t0 = time.time()
                 computed_value = solver.Solve()
+                t = time.time() - t0
 
                 packed_items = []
                 packed_weights = []
-                total_weight = 0
-                # print('Total value =', computed_value)
-                # if computed_value == pywrapknapsack_solver.OPTIMAL:
-                #     history[tc_group][problem_size] = str(computed_value) + " Optimal"
-                # else:
-                #     history[tc_group][problem_size] = str(computed_value)
-                history[tc_group][problem_size] = str(computed_value)
-                df = pd.DataFrame(history)
-                print(tabulate(df, headers='keys', tablefmt='psql'))
-                df.to_csv("results.csv", index=False)
-                # for i in range(len(values)):
-                #     if solver.BestSolutionContains(i):
-                #         # packed_items.append(i)
-                #         # packed_weights.append(weights[0][i])
-                #         total_weight += weights[0][i]
+                total_weight = 0                
+                for i in range(len(values)):
+                    if solver.BestSolutionContains(i):
+                        # packed_items.append(i)
+                        # packed_weights.append(weights[0][i])
+                        total_weight += weights[0][i]
                 # print('Total weight:', total_weight)
                 # print('Packed items:', packed_items)
                 # print('Packed_weights:', packed_weights)
-                print("--------------------------")
+                # history[tc_group][problem_size] = "v = " + str(computed_value) + ", w : " + str(total_weight)
 
+                value_history[tc_group][problem_size] = str(computed_value)
+                weight_history[tc_group][problem_size] = str(total_weight)
+                if t > TIME_LIMIT:
+                    optimal_history[tc_group][problem_size] = "_"
+                else:
+                    optimal_history[tc_group][problem_size] = "Optimal"
+                
+                value_df = pd.DataFrame(value_history)
+                weight_df = pd.DataFrame(weight_history)
+                optimal_df = pd.DataFrame(optimal_history)
+
+                os.system('cls')
+
+                print("Value table:")
+                print(tabulate(value_df, headers='keys', tablefmt='psql'))
+                value_df.to_csv("value.csv")
+
+                print("Weight table:")
+                print(tabulate(weight_df, headers='keys', tablefmt='psql'))
+                weight_df.to_csv("weight.csv")
+
+                print("Optimal table:")
+                print(tabulate(optimal_df, headers='keys', tablefmt='psql'))
+                optimal_df.to_csv("optimal.csv")
 
 if __name__ == '__main__':
     main()
