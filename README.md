@@ -1,4 +1,4 @@
-# Sokoban
+# Knapsack - Google OR-Tools
 
 ### UIT-CS106-AI
 
