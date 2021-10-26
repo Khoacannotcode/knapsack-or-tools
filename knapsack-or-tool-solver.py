@@ -2,7 +2,8 @@ from ortools.algorithms import pywrapknapsack_solver
 from pprint import pprint
 
 import os
-
+import pandas as pd
+from tabulate import tabulate
 
 # define test cases path
 TC_PATH_ROOT = "kplib"
@@ -48,7 +49,7 @@ def get_info_tc(tc_path):
 
 def main():
     # create history for saving results
-    
+    history = {}
     # Create the solver.
     solver = pywrapknapsack_solver.KnapsackSolver(
         pywrapknapsack_solver.KnapsackSolver.
@@ -57,12 +58,17 @@ def main():
     # Get test cases -> tc
     tc_path_tree = get_tc_path_tree(TC_PATH_ROOT)
 
-    # Create solution_list for visualizing and saving
-    solution_list = []
     for tc_group in tc_path_tree.keys():
         print("\n=========================")
         print("tc_group : ", tc_group)
         print("=========================")
+        history[tc_group] = {
+            50: None,
+            100 : None,
+            200 : None,
+            500 : None,
+            1000 : None
+        }
         for problem_path in tc_path_tree[tc_group]:
             problem_size, capacities, values, weights = get_info_tc(problem_path)
             # print("problem_size : ", problem_size)
@@ -82,22 +88,28 @@ def main():
             # ]]
             # capacities = [850]
             print("problem_size : ", problem_size)
-            solver.Init(values, weights, capacities)
-            computed_value = solver.Solve()
+            can_solve = True
+            if can_solve:
+                solver.Init(values, weights, capacities)
+                computed_value = solver.Solve()
 
-            packed_items = []
-            packed_weights = []
-            total_weight = 0
-            print('Total value =', computed_value)
-            for i in range(len(values)):
-                if solver.BestSolutionContains(i):
-                    # packed_items.append(i)
-                    # packed_weights.append(weights[0][i])
-                    total_weight += weights[0][i]
-            print('Total weight:', total_weight)
-            # print('Packed items:', packed_items)
-            # print('Packed_weights:', packed_weights)
-            print("--------------------------")
+                packed_items = []
+                packed_weights = []
+                total_weight = 0
+                print('Total value =', computed_value)
+                history[tc_group][problem_size] = computed_value
+                df = pd.DataFrame(history)
+                print(tabulate(df, headers='keys', tablefmt='psql'))
+                df.to_csv("results.csv", index=False)
+                # for i in range(len(values)):
+                #     if solver.BestSolutionContains(i):
+                #         # packed_items.append(i)
+                #         # packed_weights.append(weights[0][i])
+                #         total_weight += weights[0][i]
+                # print('Total weight:', total_weight)
+                # print('Packed items:', packed_items)
+                # print('Packed_weights:', packed_weights)
+                print("--------------------------")
 
 
 if __name__ == '__main__':
